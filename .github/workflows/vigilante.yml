@@ -7,6 +7,8 @@ on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   revisar:
@@ -19,7 +21,13 @@ jobs:
           for url in \
             "https://pagos.adanarias.com/vivo" \
             "https://panel.adanarias.com/entrar" \
-            "https://cursos.adanarias.com/manual_riego_goteo_palma/"; do
+            "https://adanarias.com/" \
+            "https://tienda.adanarias.com/" \
+            "https://cursos.adanarias.com/" \
+            "https://cursos.adanarias.com/manual_riego_goteo_palma/" \
+            "https://cursos.adanarias.com/balance_hidrico/" \
+            "https://cursos.adanarias.com/opinion_manual/" \
+            "https://play.google.com/store/apps/details?id=com.adanarias.navimap"; do
             if curl -fsS -o /dev/null --max-time 20 --retry 2 --retry-delay 15 --retry-all-errors "$url"; then
               echo "✅ responde: $url"
             else
