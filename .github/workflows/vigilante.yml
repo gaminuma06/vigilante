@@ -1,0 +1,51 @@
+# Vigilante de la tienda: cada 5 minutos revisa que las direcciones respondan.
+# Si alguna no responde (tras 3 intentos), la revisión falla y GitHub manda un correo de aviso.
+# Solo contiene direcciones públicas; nada de claves ni datos.
+name: vigilante
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Revisar que la tienda responda
+        run: |
+          fallo=0
+          for url in \
+            "https://pagos.adanarias.com/vivo" \
+            "https://panel.adanarias.com/entrar" \
+            "https://cursos.adanarias.com/manual_riego_goteo_palma/"; do
+            if curl -fsS -o /dev/null --max-time 20 --retry 2 --retry-delay 15 --retry-all-errors "$url"; then
+              echo "✅ responde: $url"
+            else
+              echo "❌ NO RESPONDE: $url"
+              fallo=1
+            fi
+          done
+          exit $fallo
+
+  # GitHub apaga las revisiones programadas si el repositorio pasa 60 días sin cambios.
+  # Una vez al mes se anota la fecha para que siga activo.
+  seguir-activo:
+    if: github.event.schedule == '*/5 * * * *'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Anotar la fecha una vez al mes
+        run: |
+          mes=$(date -u +%Y-%m)
+          if [ "$(cat ultima-revision.txt 2>/dev/null)" != "$mes" ]; then
+            echo "$mes" > ultima-revision.txt
+            git config user.name "vigilante"
+            git config user.email "vigilante@users.noreply.github.com"
+            git add ultima-revision.txt
+            git commit -m "Vigilante activo: $mes"
+            git push
+          fi
